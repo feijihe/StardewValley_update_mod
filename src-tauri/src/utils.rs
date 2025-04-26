@@ -34,9 +34,9 @@ pub async fn get_mod_manifest(path: &str) -> Result<String, io::Error> {
 }
 
 pub async fn get_mod_latest_version(mod_id: &str) -> Result<(String, String)> {
-    // 从 nexusmods 上获取 mod 的最新版本号
     // 这里需要使用 nexusmods 的 API 来获取 mod 的最新版本号 
     // 具体实现可以参考 nexusmods 的 API 文档
+    // let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(3)).build().unwrap();
     let client = reqwest::Client::new();
     let url = format!("https://www.nexusmods.com/stardewvalley/mods/{}?tab=files", mod_id);
 
@@ -50,23 +50,23 @@ pub async fn get_mod_latest_version(mod_id: &str) -> Result<(String, String)> {
         .context("Failed to send request")?;
 
 
-        let body = response.text().await.context("Failed to read response body")?;
+    let body = response.text().await.context("Failed to read response body")?;
 
-        let re = Regex::new(r#"<dt id=".*?" class=".*?" data-id="(.*?)" data-name=".*?" data-size="\d+" data-version="v?(.*?)" data-date="\d+">"#)
-            .context("Invalid regex pattern")?;
+    let re = Regex::new(r#"<dt id=".*?" class=".*?" data-id="(.*?)" data-name=".*?" data-size="\d+" data-version="v?(.*?)" data-date="\d+">"#)
+        .context("Invalid regex pattern")?;
+
+    let captures = re.captures(&body)
+        .context("Failed to find version information")?;
+
+    let fid = captures.get(1)
+        .context("Missing fid capture group")?
+        .as_str()
+        .to_string();
     
-        let captures = re.captures(&body)
-            .context("Failed to find version information")?;
-    
-        let fid = captures.get(1)
-            .context("Missing fid capture group")?
-            .as_str()
-            .to_string();
-        
-        let version = captures.get(2)
-            .context("Missing version capture group")?
-            .as_str()
-            .to_string();
+    let version = captures.get(2)
+        .context("Missing version capture group")?
+        .as_str()
+        .to_string();
 
     Ok((fid, version))
 }
