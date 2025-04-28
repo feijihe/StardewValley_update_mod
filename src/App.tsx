@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import reactLogo from "./assets/react.svg";
 import { Button, Table, TableColumnsType, Spin } from "antd";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
@@ -14,8 +13,6 @@ interface Mod {
 }
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
   const [modsDirectory, setModsDirectory] = useState<string>(''); // 存储目录
   const [mods, setMods] = useState<Mod[]>([]); // 存储mods lis
 
@@ -25,40 +22,34 @@ function App() {
       multiple: false,
       title: '选择存储目录'
     });
-    
+
     if (typeof selected === 'string') {
       console.log('选择的目录:', selected);
       setModsDirectory(selected);
 
       const result = await invoke<Mod[]>('check_mods', { directory: selected }); // 传递目录
       console.log('result: ', result);
+      check_mods(result);
       setMods(result);
     }
   }
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
-  async function handleCheck() {
-    if(!modsDirectory) {
-      alert('请先选择目录');
-      return; 
-    }
-
-    try {
-      const result = await invoke('check_mods', { directory: modsDirectory }); // 传递目录
-      console.log('检测结果:', result);
-      alert(result); // 显示检测结果
-    }catch(error) {
-      console.error('检测错误:', error);
-      alert('检测过程中出错222'); // 显示错误
-    }
-  }
-
   function check_mods(mods: Mod[]) {
+    mods.forEach((mod) => invoke<string>('check_mod_latest_version', { id: mod.id }).then((version) => {
+      console.log('version: ', version);
+      mod.latest_version = version;
+      setMods([...mods]);
+    }).catch(() => {
+      console.log('获取最新版本失败', mod.id);
+      mod.latest_version = '最新版本获取失败';
+      
+    })
+  );
+  }
 
+  function clearDirectory() {
+    setModsDirectory('');
+    setMods([]);
   }
 
   const columns = useMemo<TableColumnsType>(() => [
@@ -76,16 +67,16 @@ function App() {
         <button type="button" onClick={handleSelectDirectory}>选择目录</button>
       </form>
       <div>
-        <Button onClick={handleCheck}>开始检测</Button>
         <Button type="primary">开始下载</Button>
+        <Button onClick={clearDirectory}>清空目录</Button>
       </div>
       <div>
-        <Table 
-        dataSource={mods} 
-        columns={columns} 
-        style={{width:700, margin: 'auto'}} 
-        pagination={false} 
-        scroll={{ y: 500 }}
+        <Table
+          dataSource={mods}
+          columns={columns}
+          style={{ width: 700, margin: 'auto' }}
+          pagination={false}
+          scroll={{ y: 500 }}
         />
       </div>
     </main>

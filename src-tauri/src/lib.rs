@@ -89,12 +89,22 @@ async fn check_mods(directory: String) -> Result<Vec<Mod>, String> {
     Ok(mods)
 }
 
+
+#[tauri::command]
+async fn check_mod_latest_version(id: String) -> Result<String, String> {
+    println!("checking mod {}", id);
+    let (_, version) = get_mod_latest_version(&id).await.unwrap();
+
+    Ok(version)
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, check_mods])
+        .invoke_handler(tauri::generate_handler![greet, check_mods, check_mod_latest_version])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
